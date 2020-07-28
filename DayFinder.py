@@ -34,8 +34,7 @@ def GenerateRandomDate():
     return (year, month, date)
 
 RandomDate = GenerateRandomDate()
-print("\nRandomly generated Date \n")
-print("%s/%s/%s \n" %(str(RandomDate[1]), str(RandomDate[2]), str(RandomDate[0])))
+print("\n Randomly generated Date: \n %s/%s/%s \n" %(str(RandomDate[1]), str(RandomDate[2]), str(RandomDate[0])))
 
 def GetWrittenDate(y, m, d):
     def DetermineDay(y,m,q):
@@ -54,9 +53,7 @@ def GetWrittenDate(y, m, d):
     written = ("%s the %s of %s, %s" %(days[DetermineDay(y,m,d)], ord(d), months[m-1][0], y))
     return written
 
-print("Written date from randomly generated Date \n")
-print(GetWrittenDate(RandomDate[0], RandomDate[1], RandomDate[2]))
-print(" ")
+print("\n Written date from randomly generated Date: \n %s \n" % GetWrittenDate(RandomDate[0], RandomDate[1], RandomDate[2]))
 
 def GetDateFromInput():
     ValidYear = False
@@ -111,7 +108,5 @@ def GetDateFromInput():
 
 EnteredDate = GetDateFromInput()
 
-print("Entered Date")
-print("%s/%s/%s \n\n" %(str(EnteredDate[1]), str(EnteredDate[2]), str(EnteredDate[0])))
-print("Written date from your input")
-print(GetWrittenDate(EnteredDate[0], EnteredDate[1], EnteredDate[2]))
+print("\n Entered Date: %s/%s/%s \n" % (str(EnteredDate[1]), str(EnteredDate[2]), str(EnteredDate[0])))
+print(" Written date from your input:\n %s" % GetWrittenDate(EnteredDate[0], EnteredDate[1], EnteredDate[2]))
