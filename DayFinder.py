@@ -17,21 +17,6 @@ months = [('January', 31, 11), ('February', 28, 12), ('March', 31, 1),
     
 days = [('Sunday'), ('Monday'), ('Tuesday'),
         ('Wednesday'), ('Thursday'), ('Friday'), ('Saturday')]
-    
-OrdinalSuffixes = [('st'),('nd'),('rd'),('th')]
-
-month = 6
-date = 3
-year = 1967
-
-def DetermineDay(m=(months[month-1][2]), q=date, y=year if month > 2 else year - 1):
-    fy=int(str(y)[:2])
-    ly=int(str(y)[-2:])
-    h = ((q + int(float((13 * m-1)/5)) + ly + int(float((ly/4))) + int(float((fy/4))) - int(float((2*fy)))) % 7)
-
-    return h
-
-print(days[DetermineDay()])
 
 def GenerateRandomDate():
     month = randint(1, 12)
@@ -46,18 +31,87 @@ def GenerateRandomDate():
     else:
         date = randint(1, months[month-1][1])
 
-    randomDate = ("%s/%s/%s" %(str(month), str(date), str(year)))
-    return randomDate
+    return (year, month, date)
 
-print(GenerateRandomDate())
+RandomDate = GenerateRandomDate()
+print("\nRandomly generated Date \n")
+print("%s/%s/%s \n" %(str(RandomDate[1]), str(RandomDate[2]), str(RandomDate[0])))
 
-def GetWrittenDate(m=month-1, d=date, y=year):
+def GetWrittenDate(y, m, d):
+    def DetermineDay(y,m,q):
+        y=y if m > 2 else y - 1
+        mi=(months[m-1][2])    
+        fy=int(str(y)[:2])
+        ly=int(str(y)[-2:])
+        h = ((q + int(float((13 * mi-1)/5)) + ly + int(float((ly/4))) + int(float((fy/4))) - int(float((2*fy)))) % 7)
+
+        return h
+
     #Sunday the 12th of June, 2021.
     def ord(n):
         return str(n)+("th" if 4 <= n % 100 <= 20 else {1:"st", 2:"nd", 3:"rd"}.get(n%10, "th"))
 
-    written = ("%s the %s of %s, %s" %(days[DetermineDay()], ord(d), months[m][0], y))
-    
+    written = ("%s the %s of %s, %s" %(days[DetermineDay(y,m,d)], ord(d), months[m-1][0], y))
     return written
 
-print(GetWrittenDate())
+print("Written date from randomly generated Date \n")
+print(GetWrittenDate(RandomDate[0], RandomDate[1], RandomDate[2]))
+print(" ")
+
+def GetDateFromInput():
+    ValidYear = False
+    while not ValidYear:
+        try:
+            year = int(input('Enter the year, four digits:'))
+            if ((year < 1000) or (year > 9999)):
+                print("You have entered %s which is an invalid year." %str(year))
+            elif(year % 4 == 0):
+                ValidYear = True
+                print("You have entered %s which was a leap year." %str(year))
+            else:
+                ValidYear = True
+                print("You have entered %s." %str(year))
+        except ValueError:
+            print("That's not a number.")
+
+    ValidMonth = False
+    while not ValidMonth:
+        try:
+            month = int(input('Enter the month number, either two digits or one:'))
+            if month > len(months):
+                print("You have entered %s which is an invalid month." %str(month))
+            else:
+                ValidMonth = True
+                print("You have entered %s." %str(month))
+        except ValueError:
+            print("That's not a number.")
+
+    LeapDate = False
+    if((year % 4 == 0) and (month == 2)):
+        LeapDate = True
+
+    ValidDate = False
+    while not ValidDate:
+        try:
+            date = int(input('Enter the date number, either two digits or one:'))
+            if((LeapDate == True) and (date <= 29)):
+                ValidDate = True
+                print("You have entered %s." %str(int(date)))
+            elif((LeapDate == False) and (date <= months[month-1][1])):
+                ValidDate = True
+                print("You have entered %s." %str(int(date)))
+            elif((LeapDate == True) and (date >= 29)):
+                print(r'%s of %s was a leap year and had %s days max.' %(months[month-1][0], str(year), 29))
+            elif((LeapDate == False) and (date >= months[month-1][1])):
+                print(r'%s of %s had %s days max.' %(months[month-1][0], str(year), months[month-1][1]))
+        except ValueError:
+            print("That's not a number.")
+
+    return (year, month, date)
+
+EnteredDate = GetDateFromInput()
+
+print("Entered Date")
+print("%s/%s/%s \n\n" %(str(EnteredDate[1]), str(EnteredDate[2]), str(EnteredDate[0])))
+print("Written date from your input")
+print(GetWrittenDate(EnteredDate[0], EnteredDate[1], EnteredDate[2]))
