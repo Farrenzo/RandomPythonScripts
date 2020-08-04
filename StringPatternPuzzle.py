@@ -14,6 +14,7 @@
 #tl = total letters required outside
 #td = number of digits seperating letters
 def advanced_state_machinery(txt, pl, tl, td):
+    state = 0
 
     def firstandlast(pl, tl):
         x = 0
@@ -31,13 +32,12 @@ def advanced_state_machinery(txt, pl, tl, td):
             x += 1
 
         return oc
-
-    state = 0
-
+    
     for i, ch in enumerate(txt): #i = index position & ch = character
         next_state = tl if state == tl else 0
         fn_check = str.isalpha if state in firstandlast(pl, tl) else str.isdigit
         state = state + 1 if fn_check(ch) else next_state
+        
         if state > pl - 1:
             state = tl
             if tl > 1:
