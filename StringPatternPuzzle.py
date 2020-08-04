@@ -40,11 +40,10 @@ def advanced_state_machinery(txt, pl, tl, td):
         state = state + 1 if fn_check(ch) else next_state
         if state > pl - 1:
             state = tl
-            lst = 1 if tl >= 2 else tl - 1
             if tl > 1:
-                yield ("Start positions: %s & %s.\nEnd positions: %s & %s\nFound at %s\n" %(i - (pl-1), i - (pl-(tl)), i - lst, i, txt[i - (pl-1):i + lst]))
+                yield ("Start positions: %s & %s.\nEnd positions: %s & %s\nFound at %s\n" %(i - (pl-1), i - (pl-(tl)), i - 1, i, txt[i - (pl-1):i + 1]))
             else:
-                yield ("Start position: %s.\nEnd position: %s.\nFound at %s\n" %(i - (pl-1), i, txt[i - (pl-1):i + lst]))
+                yield ("Start position: %s.\nEnd position: %s.\nFound at %s\n" %(i - (pl-1), i, txt[i - (pl-1):i + 1]))
 
 puzzlebox = 'C16111AA111BB117AA111311BB111111AA111BB111111AA11D'
 for m in advanced_state_machinery(puzzlebox, 7, 2, 3):
