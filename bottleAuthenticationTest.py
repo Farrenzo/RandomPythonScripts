@@ -3,7 +3,7 @@ from bottle import route, run, template
 @route('/')
 def index():
     return ('<b>Hello</b>')
-#to test point: http://localhost:8080/about
+#to test point: http://localhost:8080/
 
 @route('/about')
 def about():
