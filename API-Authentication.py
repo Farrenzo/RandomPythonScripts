@@ -17,8 +17,7 @@ def secret():
         page_info = secretchecker(key)
         return (page_info)
     except KeyError:
-        msg = ("<b> You'll need permission to be here.</b>")
-        return msg
+        return ("<b> You'll need permission to be here.</b>")
 #to test point: http://localhost:8080/secrets
 
 def secretchecker(lock):
