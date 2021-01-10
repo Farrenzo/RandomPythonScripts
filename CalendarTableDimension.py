@@ -1,4 +1,4 @@
-import csv, math, datetime
+import math, datetime
 from datetime import datetime, timedelta
 
 # I made the below tuples because datetime python starts it's ID's with a zero.
