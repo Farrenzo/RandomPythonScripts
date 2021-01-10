@@ -49,22 +49,21 @@ def csvCreator(r):
 h = 'CalDate_ID,Date_ID,Day_ID,Interval_ID,Week_Num,Date,Day,Interval,Interval_60,Interval_30,oID'
 csvCreator(h)
 # Start date
-sDate = datetime.strptime('2020-01-01', '%Y-%m-%d')
+sDate = datetime.strptime('2015-01-01', '%Y-%m-%d')
 # End date
-eDate = datetime.strptime('2020-03-31', '%Y-%m-%d')
+eDate = datetime.strptime('2015-01-06', '%Y-%m-%d')
 
 # Total days x 96 = total number of rows to expect. 96 = 15 min increments in one day.
 iDate = sDate
 tDays = (eDate - sDate)
 tRows = (tDays.days * 96) + 1
-dID = 1
+r = []
 n = 1
-
 while n < tRows:
-
-    r = []    
+    
+    x = iDate - sDate
+    Date_ID = (x.days + 1)
     CalDate_ID = n
-    Date_ID = math.floor(n/96) + 1
     Day_ID = int(wd[datetime.strftime(iDate, '%A')])
     iID = [x for x,y in enumerate(tIntervals) if y[0] == datetime.strftime(iDate, '%H:%M:%S')]
     Interval_ID = int(iID[0]) + 1
@@ -73,8 +72,8 @@ while n < tRows:
     Day = datetime.strftime(iDate, '%A')
     Interval = datetime.strftime(iDate, '%H:%M:%S')
     i60 = str([i for i in tIntervals if i[0] == datetime.strftime(iDate, '%H:%M:%S')])
-    Interval_60 = int(i60[16:17])
-    Interval_30 = int(i60[22:23])
+    Interval_60 = int(i60[15:17])
+    Interval_30 = int(i60[21:23])
     oID = 0 #Always going to be zero, you change it according to your occasion table data.
     r = [CalDate_ID, Date_ID, Day_ID, Interval_ID, Week_Num, Date, Day, Interval, Interval_60, Interval_30, oID]
     rs = ('%d,%d,%d,%d,%d,%s,%s,%s,%d,%d,%d' %(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10]))
