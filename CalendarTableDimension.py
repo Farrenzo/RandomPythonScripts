@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 # Start date
 sDate = datetime.strptime('2015-01-01', '%Y-%m-%d')
 # End date
-eDate = datetime.strptime('2015-01-06', '%Y-%m-%d')
+eDate = datetime.strptime('2015-03-31', '%Y-%m-%d')
 
 # I made the below tuples because datetime python starts it's ID's with a zero.
 # I do not want any ID to begin with a zero as my database logic uses zero as a
@@ -47,18 +47,16 @@ tIntervals = [
              ]
 wd = dict(map(lambda ds:ds[0], wDays))
 def csvCreator(r):
-    TheCSVFilePath = 'C:/cal.csv'
+    TheCSVFilePath = 'X:/cal.csv'
     with open(TheCSVFilePath, 'a', newline='', ) as TheCSV:
         TheCSV.write("%s\n" % r)
 
 h = 'CalDate_ID,Date_ID,Day_ID,Interval_ID,Week_Num,Date,Day,Interval,Interval_60,Interval_30,oID'
 csvCreator(h)
-
 # Total days x 96 = total number of rows to expect. 96 = 15 min increments in one day.
 iDate = sDate
 tDays = (eDate - sDate)
 tRows = (tDays.days * 96) + 1
-r = []
 n = 1
 while n < tRows:
     
@@ -76,8 +74,7 @@ while n < tRows:
     Interval_60 = int(i60[15:17])
     Interval_30 = int(i60[21:23])
     oID = 0 #Always going to be zero, you change it according to your occasion table data.
-    r = [CalDate_ID, Date_ID, Day_ID, Interval_ID, Week_Num, Date, Day, Interval, Interval_60, Interval_30, oID]
-    rs = ('%d,%d,%d,%d,%d,%s,%s,%s,%d,%d,%d' %(r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10]))
-    csvCreator(rs)
+    r = ('%d,%d,%d,%d,%d,%s,%s,%s,%d,%d,%d' %(CalDate_ID, Date_ID, Day_ID, Interval_ID, Week_Num, Date, Day, Interval, Interval_60, Interval_30, oID))
+    csvCreator(r)
     iDate = iDate + timedelta(minutes=15)
     n += 1
