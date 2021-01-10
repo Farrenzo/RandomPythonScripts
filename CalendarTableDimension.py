@@ -1,6 +1,11 @@
 import math, datetime
 from datetime import datetime, timedelta
 
+# Start date
+sDate = datetime.strptime('2015-01-01', '%Y-%m-%d')
+# End date
+eDate = datetime.strptime('2015-01-06', '%Y-%m-%d')
+
 # I made the below tuples because datetime python starts it's ID's with a zero.
 # I do not want any ID to begin with a zero as my database logic uses zero as a
 # null function. You may not need them if you do have zero as the first unique index.
@@ -42,16 +47,12 @@ tIntervals = [
              ]
 wd = dict(map(lambda ds:ds[0], wDays))
 def csvCreator(r):
-    TheCSVFilePath = 'X:/cal.csv'
+    TheCSVFilePath = 'C:/cal.csv'
     with open(TheCSVFilePath, 'a', newline='', ) as TheCSV:
         TheCSV.write("%s\n" % r)
 
 h = 'CalDate_ID,Date_ID,Day_ID,Interval_ID,Week_Num,Date,Day,Interval,Interval_60,Interval_30,oID'
 csvCreator(h)
-# Start date
-sDate = datetime.strptime('2015-01-01', '%Y-%m-%d')
-# End date
-eDate = datetime.strptime('2015-01-06', '%Y-%m-%d')
 
 # Total days x 96 = total number of rows to expect. 96 = 15 min increments in one day.
 iDate = sDate
