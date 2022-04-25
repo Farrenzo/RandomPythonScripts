@@ -69,7 +69,7 @@ class GoogleSheetsConnector:
         self.cred_path      = cred_path
         self.imposter_email = json.load(open(cred_path))["subject"]
        
-    def _create_connection_and_impersonate(self) -> None:
+    def _create_connection_and_impersonate(self) -> object:
         auth =  ServiceAccountCredentials.from_json_keyfile_name(self.cred_path, self.SCOPE)
         credentials = auth.create_delegated(self.imposter_email)
         # Needs to be v4 to be API version 4 
