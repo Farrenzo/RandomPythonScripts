@@ -1,5 +1,12 @@
-import math, datetime
+import time, datetime
 from datetime import datetime, timedelta
+
+# Check the scripts performance
+start = time.perf_counter()
+
+def csvCreator(csv_file:str, csv_data:str):
+    with open(csv_file, 'a', newline='', ) as TheCSV:
+        TheCSV.write("%s" % csv_data)
 
 # Start date
 sDate = datetime.strptime('2015-01-01', '%Y-%m-%d')
@@ -46,20 +53,14 @@ tIntervals = [
                 ['23:00:00', '24', '47'],['23:15:00', '24', '47'],['23:30:00', '24', '48'],['23:45:00', '24', '48']
              ]
 wd = dict(map(lambda ds:ds[0], wDays))
-def csvCreator(r):
-    TheCSVFilePath = 'X:/cal.csv'
-    with open(TheCSVFilePath, 'a', newline='', ) as TheCSV:
-        TheCSV.write("%s\n" % r)
 
-h = 'CalDate_ID,Date_ID,Day_ID,Interval_ID,Week_Num,Date,Day,Interval,Interval_60,Interval_30,oID'
-csvCreator(h)
 # Total days x 96 = total number of rows to expect. 96 = 15 min increments in one day.
 iDate = sDate
 tDays = (eDate - sDate)
 tRows = (tDays.days * 96) + 1
+h = 'CalDate_ID,Date_ID,Day_ID,Interval_ID,Week_Num,Date,Day,Interval,Interval_60,Interval_30,oID'
 n = 1
-while n < tRows:
-    
+while n < tRows:    
     x = iDate - sDate
     Date_ID = (x.days + 1)
     CalDate_ID = n
@@ -74,7 +75,13 @@ while n < tRows:
     Interval_60 = int(i60[15:17])
     Interval_30 = int(i60[21:23])
     oID = 0 #Always going to be zero, you change it according to your occasion table data.
-    r = ('%d,%d,%d,%d,%d,%s,%s,%s,%d,%d,%d' %(CalDate_ID, Date_ID, Day_ID, Interval_ID, Week_Num, Date, Day, Interval, Interval_60, Interval_30, oID))
-    csvCreator(r)
+    r = (f'\n{CalDate_ID}, {Date_ID}, {Day_ID}, {Interval_ID}, {Week_Num}, {Date}, {Day}, {Interval}, {Interval_60}, {Interval_30}, {oID}')
+    h = h + r
     iDate = iDate + timedelta(minutes=15)
     n += 1
+
+TheCSVFilePath = 'X:/cal.csv'
+csvCreator(csv_file=TheCSVFilePath, csv_data= h)
+
+y = time.perf_counter() - start
+print(y)
