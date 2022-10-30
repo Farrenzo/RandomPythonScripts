@@ -15,17 +15,29 @@ some_dict = {
     "down_10":24,
 }
 
-console = Console(record=True)
-with Progress(
-    SpinnerColumn(),
-    *Progress.get_default_columns(),
-    TimeElapsedColumn(),
-    console=console
-) as progress:
-    for key, value in some_dict.items():
-        task = progress.add_task(f"[green]Running {key}", total=value)
-        sleeper = 0
-        while sleeper != value:
-            progress.advance(task, 1)
-            sleeper += 1
-            time.sleep(1)
+def syncronous_run(data_dict:dict) -> None:
+    """Will take 4 mins 35 seconds (275) to complete."""
+    console = Console(record=True)
+    with Progress(
+        SpinnerColumn(),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        console=console
+    ) as progress:
+        tasks = {key:progress.add_task(f"[green]Running {key}", total=value)
+            for key, value in data_dict.items()
+        }
+        # Runs one by one, but each advances once in turns
+        # while not progress.finished:
+        #     for key, value in data_dict.items():
+        #         if progress._tasks[tasks[key]].completed != progress._tasks[tasks[key]].total:
+        #             progress.advance(tasks[key], 1)
+        #             time.sleep(1)
+        
+        # Runs one task after the other.
+        for key, value in data_dict.items():
+            while progress._tasks[tasks[key]].completed != progress._tasks[tasks[key]].total:
+                progress.advance(tasks[key], 1)
+                time.sleep(1)
+
+syncronous_run(data_dict=some_dict) #00:04:35
