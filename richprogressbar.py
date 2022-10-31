@@ -65,6 +65,6 @@ async def asynchronous_run(dict_to_run: dict) -> None:
         ))
     
 start = time.perf_counter()
-asyncio.run(asynchronous_run(dict_to_run=dict_165))
+asyncio.run(asynchronous_run(dict_to_run=some_dict))
 finish = time.perf_counter()
 print(f"Done in {finish - start} seconds.")
