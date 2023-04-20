@@ -18,7 +18,6 @@ GiB = MiB*MiB
 TiB = GiB*GiB
 PiB = TiB*TiB
 console = Console(record=False)
-description = "[green][b]Downloading {0} | {1}[/b] | {2}"
 
 
 class FileDownloader:
@@ -31,6 +30,7 @@ class FileDownloader:
         type  concurrent_downloads: Bool.
         :rtype: Dict
         """
+        self.description :str = "[green][b]Downloading {0} | {1}[/b] | {2}"
         download_links = {}
         # Get a proper dictionary of files to download.
         for file_name, file_info in links.items():
@@ -114,17 +114,23 @@ class FileDownloader:
         binary_mode: str,
         task_id: TaskID,
         progress: Progress,
-        semaphore = asyncio.Semaphore(2),
+        semaphore = asyncio.Semaphore(3),
         header: dict={},
     ) -> None:
         start = time.perf_counter()
-        if binary_mode == "ab":
-            progress.update(task_id, advance=getsize(file_path + ".PART"))
         download = 0
         timeout = aiohttp.ClientTimeout(total=3000)
         async with aiohttp.ClientSession(timeout=timeout) as session, semaphore:
             async with session.get(url, headers=header) as response, aiofiles.open(file_path + ".PART", binary_mode) as local_file:
-                ## TO DO: Update progress bar to size of full download.
+                file_size = response.content_length
+                if binary_mode == "ab":
+                    file_size += getsize(file_path + ".PART")
+
+                progress.update(
+                    task_id,
+                    total   = file_size,
+                    advance = getsize(file_path + ".PART"),
+                )
                 async for data in response.content.iter_chunked(KiB):
                     await local_file.write(data)
                     download += len(data)
@@ -132,7 +138,7 @@ class FileDownloader:
                     progress.update(
                         task_id,
                         advance=len(data),
-                        description = description.format(
+                        description = self.description.format(
                             self._size_notation(response.content_length),
                             file_path[file_path.rfind('/')+1:],
                             bit_rate
@@ -178,7 +184,3 @@ linky = {
 }
 
 FileDownloader(linky)
-# Notes: the size of the progress bar does not update itself to
-# the size of the full download if a .PART file exists. We need
-# to get the size of the full file, and the part file, and update
-# the progress bar accordingly.
