@@ -30,7 +30,7 @@ class FileDownloader:
         type  concurrent_downloads: Bool.
         :rtype: Dict
         """
-        self.description :str = "[green][b]Downloading {0} | {1}[/b] | {2}"
+        self.description :str = "[yellow][b]Downloading {0} | {1}[/b] | {2}"
         download_links = {}
         # Get a proper dictionary of files to download.
         for file_name, file_info in links.items():
@@ -76,7 +76,7 @@ class FileDownloader:
             console=console,
         ) as progress:
             for file_name, file_info in download_links.items():
-                file_info.append(progress.add_task(f"[green]Queued [b]{file_name}[/b]", total=file_info[2]))
+                file_info.append(progress.add_task(f"[blue]Queued [b]{file_name}[/b]", total=file_info[2]))
 
             if concurrent_downloads:
                 asyncio.run(self.download_concurrently(progress, download_links))
@@ -85,7 +85,8 @@ class FileDownloader:
 
     def _size_notation(self, n:int, np:int = 2) -> str:
         """Return a string showing a number in B/KiB/MiB/GiB format.
-            Raises ValueError if "n" not in [0, 1TiB).
+        
+        Raises ValueError if "n" not in [0, 1PiB).
     
         param n: The number to convert.
         type n: Integer
@@ -144,6 +145,14 @@ class FileDownloader:
                             bit_rate
                         )
                     )
+        progress.update(
+            task_id,
+            description = "[green][b]Done {0} | {1}[/b] | {2}".format(
+                self._size_notation(response.content_length),
+                file_path[file_path.rfind('/')+1:],
+                bit_rate
+            )
+        )
         # Clear the part file after completion.
         rename(file_path + ".PART", file_path)
 
