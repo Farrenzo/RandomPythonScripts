@@ -1,3 +1,17 @@
+"""Image comparison using OpenCV and CUDA.
+
+This script compares images using the SIFT algorithm and CUDA. If
+you do not have CUDA installed via CMAKE, the script will only work
+with your CPU. The comparison will grow exponentially with the
+number of images. If you have 200 images, the comparison will
+run 199*200/2 = 19,900 times.
+
+USAGE EXAMPLES:
+>>> pathy = "C:/Docs/Folder/Images"
+>>> ImageComparator(pathy).run_all() ## You can just do this.
+>>> ImageComparator(pathy).read_images() ## To only read images. Will save in a pickle file in "C:/Docs/Folder/meta/.cache/xxx.pickle".
+>>> ImageComparator(pathy).compare_images() ## To only compare images. Will save in a JSON file in "C:/Docs/Folder/meta/similarities.json".
+"""
 import os
 import json
 import pickle
@@ -15,6 +29,16 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from rich.console import Console
 from rich.progress import Progress, TimeElapsedColumn, TaskID
 console = Console(log_time=True, log_path=False)
+
+def float_to_time_format(float_time: float) -> str:
+    """Convert floating-point time to timedelta"""
+    time_delta = timedelta(seconds=float_time)
+    base_time = datetime(1900, 1, 1) + time_delta
+    # Format the datetime object as a string in "0:00:00" format
+    return base_time.strftime("%H:%M:%S")
+
+# Leave some cores available for other things. :)
+CHUNK_SIZE = os.cpu_count() - 2
 
 @dataclass(order=True)
 class ImageData:
@@ -114,7 +138,7 @@ class ImageComparator:
         self,
         all_tasks:list,
         function: callable,
-        chunk_size:int = 20,
+        chunk_size:int = CHUNK_SIZE,
         task_description:str = "task",
         quarterly:bool = False
     ) -> None:
@@ -276,3 +300,11 @@ class ImageComparator:
         for _, path in paths.items():
             if not os.path.isdir(path):
                 os.mkdir(path)
+
+
+pathy = "C:/Docs/Folder/Images"
+# ImageComparator(pathy).read_images()
+# ImageComparator(pathy).compare_images()
+ImageComparator(pathy).run_all()
+print(f"Time taken: {time.perf_counter()-start:.2f}s")
+
