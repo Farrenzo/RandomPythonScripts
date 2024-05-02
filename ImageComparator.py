@@ -4,7 +4,7 @@ This script compares images using the SIFT algorithm and CUDA. If
 you do not have CUDA installed via CMAKE, the script will only work
 with your CPU. The comparison will grow exponentially with the
 number of images. If you have 200 images, the comparison will
-run 199*200/2 = 19,900 times.
+run (199*200)/2 = 19,900 times.
 
 USAGE EXAMPLES:
 >>> pathy = "C:/Docs/Folder/Images"
@@ -30,6 +30,9 @@ from rich.console import Console
 from rich.progress import Progress, TimeElapsedColumn, TaskID
 console = Console(log_time=True, log_path=False)
 
+# Leave some cores available for other things. :)
+CHUNK_SIZE = os.cpu_count() - 4
+
 def float_to_time_format(float_time: float) -> str:
     """Convert floating-point time to timedelta"""
     time_delta = timedelta(seconds=float_time)
@@ -37,8 +40,6 @@ def float_to_time_format(float_time: float) -> str:
     # Format the datetime object as a string in "0:00:00" format
     return base_time.strftime("%H:%M:%S")
 
-# Leave some cores available for other things. :)
-CHUNK_SIZE = os.cpu_count() - 2
 
 @dataclass(order=True)
 class ImageData:
@@ -94,14 +95,7 @@ class ImageComparator:
             console.print(f"Found {total_pics} images. This operation will run {runs:,.0f} times.\n")
 
         self.errors: dict[str, ImageData] = {}
-        self.prelim_results: dict[str, list] = {
-            "pic1": [],
-            "pic2": [],
-            "similarity": [],
-            "matches": [],
-            "size_1": [],
-            "size_2": [],
-        }
+        self.prelim_results: dict[str, list] = {}
 
         FLANN_INDEX_KDTREE = 1
         self.sift = cv2.SIFT.create()
@@ -123,10 +117,10 @@ class ImageComparator:
     def fetch_all_image_files(self, folder_path: str):
         """Gather all images into a list of ImageData objects."""
         self.files.update({
-            os.path.join(folder_path, file): ImageData(
+            f"{folder_path}/{file}": ImageData(
                 name = file,
-                file_path = os.path.join(folder_path, file),
-                file_size = os.stat(os.path.join(folder_path, file)).st_size,
+                file_path = f"{folder_path}/{file}",
+                file_size = os.stat(f"{folder_path}/{file}").st_size,
             )
             for file in os.listdir(folder_path)
             if file.lower().endswith(
@@ -202,30 +196,26 @@ class ImageComparator:
         self,
         progress: Progress,
         task_id: TaskID,
-        images: list[ImageData],
+        task: "list[ImageData]",
         quarterly:bool = False
     ) -> None:
         """Compare two images using the SIFT algorithm."""
         if not self.use_cuda:
-            matches = self.flann.knnMatch(images[0].descriptor, images[1].descriptor, k=2)
+            matches = self.flann.knnMatch(task[1].descriptor, task[2].descriptor, k=2)
         else:
-            matches = self.matcher.knnMatchAsync(images[0].gpu_mat, images[1].gpu_mat, k=2)
+            matches = self.matcher.knnMatchAsync(task[1].gpu_mat, task[2].gpu_mat, k=2)
             self.stream.waitForCompletion()
             matches = self.matcher.knnMatchConvert(matches)
 
         good_matches = [m for m, n in matches if m.distance < 0.7 * n.distance]
         similarity = len(good_matches) / len(matches) if matches else 0
-        self.prelim_results["pic1"].append(images[0].file_path)
-        self.prelim_results["pic2"].append(images[1].file_path)
-        self.prelim_results["similarity"].append(f"{similarity:.6f}")
-        self.prelim_results["matches"].append(len(good_matches))
-        self.prelim_results["size_1"].append(images[0].file_size)
-        self.prelim_results["size_2"].append(images[1].file_size)
-
+        self.prelim_results[task[0]].update({
+            "matches": len(good_matches),
+            "similarity": f"{similarity:.6f}",
+        })
         progress.update(advance = 1, task_id = task_id,
-            description = f"Done {images[0].name} vs {images[1].name}"
+            description = f"Done {task[1].name} vs {task[2].name}"
         )
-        self.task_runner.remove(images)
         if quarterly:
             current_percentage = progress.tasks[task_id].completed / progress.tasks[task_id].total * 100
             if self.quarters and current_percentage >= self.quarters[0]:
@@ -239,13 +229,15 @@ class ImageComparator:
         image_tasks: "list[list[ImageData, ImageData]]" = []
         images = [image_path for image_path in self.files.keys()]
 
+        c = 0
         if not self.use_cuda:
             if not os.path.isfile(self.task_queue_pkl):
                 for i in range(len(images)):
                     for j in range(i+1, len(images)):
                         image_tasks += [
-                            [self.files[images[i]], self.files[images[j]]]
+                            [c, self.files[images[i]], self.files[images[j]]]
                         ]
+                        c += 1
                 self.pickle_and_save(image_tasks, self.task_queue_pkl, "wb")
             else:
                 image_tasks = self.pickle_and_save({}, self.task_queue_pkl)
@@ -260,9 +252,17 @@ class ImageComparator:
             for i in range(len(images)):
                 for j in range(i + 1, len(images)):
                     image_tasks += [
-                        [self.files[images[i]], self.files[images[j]]]
+                        [c, self.files[images[i]], self.files[images[j]]]
                     ]
+                    c += 1
 
+        for i in range(len(image_tasks)):
+            self.prelim_results[i] = {
+                "pic1":    image_tasks[i][1].file_path,
+                "pic2":    image_tasks[i][2].file_path,
+                "size_1":  image_tasks[i][1].file_size,
+                "size_2":  image_tasks[i][2].file_size,
+            }
         self._task_runner(
             all_tasks = image_tasks,
             function=self._comparator,
@@ -276,7 +276,7 @@ class ImageComparator:
         self,
         log_obj: dict,
         log_file_path:str,
-        mode:   Literal["wb", "rb"]       = "rb",
+        mode:   Literal["wb", "rb"] = "rb",
         option: Literal["pickle", "csv", "json"] = "pickle"
     ) -> None:
         """Store temporary data in a pickle file."""
@@ -292,7 +292,12 @@ class ImageComparator:
             with open(f"{log_file_path}.json", "w") as json_file:
                 json.dump(log_obj, json_file, indent=4, sort_keys=True)
         if option == "csv":
-            df = pd.DataFrame(log_obj)
+            results_cols = [
+                "pic1", "pic2", "size_1", "size_2", "matches", "similarity"
+            ]
+            df = pd.DataFrame.from_dict(
+                log_obj, orient="index", columns=results_cols
+            ).sort_values(by=["similarity"], ascending=False)
             df.to_csv(f"{log_file_path}.csv", index=False)
             console.log(f"Saved comparison results to: {log_file_path}")
     
@@ -301,10 +306,4 @@ class ImageComparator:
             if not os.path.isdir(path):
                 os.mkdir(path)
 
-
-pathy = "C:/Docs/Folder/Images"
-# ImageComparator(pathy).read_images()
-# ImageComparator(pathy).compare_images()
-ImageComparator(pathy).run_all()
-print(f"Time taken: {time.perf_counter()-start:.2f}s")
 
