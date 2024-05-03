@@ -20,7 +20,7 @@ import pandas as pd
 from typing import Literal
 
 import cv2
-from cv2 import cuda
+from cv2 import cuda, SIFT, FlannBasedMatcher
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -30,6 +30,7 @@ from rich.console import Console
 from rich.progress import Progress, TimeElapsedColumn, TaskID
 console = Console(log_time=True, log_path=False)
 
+FLANN_INDEX_KDTREE = 1
 # Leave some cores available for other things. :)
 CHUNK_SIZE = os.cpu_count() - 4
 
@@ -94,12 +95,10 @@ class ImageComparator:
             runs = ((total_pics-1)*total_pics)/2
             console.print(f"Found {total_pics} images. This operation will run {runs:,.0f} times.\n")
 
-        self.errors: dict[str, ImageData] = {}
-        self.prelim_results: dict[str, list] = {}
-
-        FLANN_INDEX_KDTREE = 1
-        self.sift = cv2.SIFT.create()
         self.use_cuda = use_cuda
+        self.sift     = SIFT.create()
+        self.errors: dict[str, ImageData] = {}
+        self.prelim_results: dict[str, dict[str, str]] = {}
         if self.use_cuda:
             cuda.setDevice(0)
             self.stream  = cuda.Stream()
@@ -107,7 +106,7 @@ class ImageComparator:
         else:
             search_params = {"checks":50}
             index_params  = {"algorithm":FLANN_INDEX_KDTREE, "trees":5}
-            self.flann    = cv2.FlannBasedMatcher(index_params, search_params)
+            self.flann    = FlannBasedMatcher(index_params, search_params)
 
     def run_all(self):
         if not self.file_load:
@@ -203,9 +202,11 @@ class ImageComparator:
         if not self.use_cuda:
             matches = self.flann.knnMatch(task[1].descriptor, task[2].descriptor, k=2)
         else:
-            matches = self.matcher.knnMatchAsync(task[1].gpu_mat, task[2].gpu_mat, k=2)
-            self.stream.waitForCompletion()
-            matches = self.matcher.knnMatchConvert(matches)
+            matches = self.matcher.knnMatchConvert(
+                self.matcher.knnMatchAsync(
+                    task[1].gpu_mat, task[2].gpu_mat, k=2, stream=self.stream
+                )
+            )
 
         good_matches = [m for m, n in matches if m.distance < 0.7 * n.distance]
         similarity = len(good_matches) / len(matches) if matches else 0
@@ -222,7 +223,8 @@ class ImageComparator:
                 self.quarters.pop(0)
                 self.pickle_and_save(self.prelim_results, self.log_file, "wb", "json")
                 if not self.use_cuda:
-                    self.pickle_and_save(self.task_runner, self.task_queue_pkl, "wb")
+                    bookmark = self.task_runner.remove(task)
+                    self.pickle_and_save(bookmark, self.task_queue_pkl, "wb")
 
     def compare_images(self) -> None:
         """Set up the images for comparison."""
@@ -286,7 +288,7 @@ class ImageComparator:
                     return pickle.load(pickle_file)
                 else:
                     pickle.dump(log_obj, pickle_file, pickle.HIGHEST_PROTOCOL)
-                    console.log(f"Saved image data to: {log_file_path}")
+                    console.log(f"Saved pickle data to: {log_file_path}")
         if option == "json":
             """Save results into a CSV file."""
             with open(f"{log_file_path}.json", "w") as json_file:
@@ -305,5 +307,4 @@ class ImageComparator:
         for _, path in paths.items():
             if not os.path.isdir(path):
                 os.mkdir(path)
-
 
