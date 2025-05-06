@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+    body {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #444444;
+        font-family: Arial, sans-serif;
+    }
+    p {
+        font-size: 14px;
+        color: #FFF;
+    }
+    h1 {
+        font-size: 19px;
+        color: #9c91db;
+    }
+    h2, h3 {
+        font-size: 17px;
+        color: #ece7e7;
+        margin: 0;
+    }
+    .button:hover {
+        background-color: #5e5e5e
+    }
+    .button:active {
+        background-color: #444343;
+        box-shadow: 0 5px #666;
+        transform: translateY(4px);
+    }
+    .button {
+        padding: 15px 25px;
+        font-size: 16px;
+        text-align: center;
+        cursor: pointer;
+        outline: none;
+        color: #ece7e7;
+        background-color: #0b0f0e;
+        border: none;
+        border-radius: 15px;
+        margin-top: 10px;
+    }
+    input[type="text"] {
+        padding: 8px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border: none;
+        width: 80px;
+        text-align: center;
+    }
+    .dimension-input {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .dimension-input span {
+        color: #fff;
+        margin: 0 10px;
+    }
+    .ratio-result {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #222;
+        border-radius: 5px;
+    }
+    .ratio-match {
+        margin-top: 5px;
+        padding: 10px;
+        background-color: #222;
+        border-radius: 5px;
+    }
+    .highlighted {
+        background-color: #422a5d;
+    }
+    .scaled-sizes {
+        margin-top: 15px;
+    }
+    .scaled-size {
+        margin: 5px 0;
+        color: #fff;
+    }
+    .dimms {
+        color: #7c68f0;
+        font-weight: 600;
+    }
+</style>
+</head>
+<body>
+
+    <h1>Aspect Ratio Calculator</h1>
+
+    <div class="entryPanel">
+        <p>Quick & dirty way to find the nearest aspect ratio</p>
+        <div class="dimension-input">
+            <input type="text" id="width" placeholder="Width">
+            <span>×</span>
+            <input type="text" id="height" placeholder="Height">
+        </div>
+        <button id="btnCalc" class="button">Calculate</button>
+        <div id="result" class="ratio-result"></div>
+        <div id="match" class="ratio-match"></div>
+    </div>
+
+<script>
+    const acc = document.getElementsByClassName("accordion");
+    const common_aspect_ratios = {
+        "Square": {
+            "512*512": "1:1",
+            "576*576": "1:1",
+            "1024*1024": "1:1"
+        },
+        "Horizontal": {
+            "1024*576": "16:9",
+            "1024*960": "16:15",
+            "1088*896": "17:14",
+            "1088*960": "17:15",
+            "1152*896": "9:7",
+            "1152*832": "18:13",
+            "1216*832": "19:13",
+            "1280*768": "5:3",
+            "1344*704": "21:11",
+            "1344*768": "7:4",
+            "1408*704": "2:1",
+            "1472*704": "23:11",
+            "1536*640": "12:5",
+            "1600*640": "5:2",
+            "1664*576": "26:9",
+            "1728*576": "3:1"
+        },
+        "Vertical": {
+            "576*1024": "9:16",
+            "768*1280": "3:5",
+            "832*1216": "13:19",
+            "704*1344": "11:21",
+            "704*1408": "1:2",
+            "768*1344": "4:7",
+            "832*1152": "13:18",
+            "896*1088": "14:17",
+            "896*1152": "7:9",
+            "960*1024": "15:16",
+            "960*1088": "15:17"
+        }
+    };
+
+    // GCD calculation for simplifying ratios
+    function gcd(a, b) {
+        return b ? gcd(b, a % b) : a;
+    }
+
+    // Calculate aspect ratio from width and height
+    function calculateAspectRatio(width, height) {
+        const divisor = gcd(width, height);
+        return `${width/divisor}:${height/divisor}`;
+    }
+
+    // Calculate distance between two aspect ratios (as decimals)
+    function calculateRatioDifference(ratio1, ratio2) {
+        const [w1, h1] = ratio1.split(':').map(Number);
+        const [w2, h2] = ratio2.split(':').map(Number);
+        
+        const decimal1 = w1 / h1;
+        const decimal2 = w2 / h2;
+        
+        return Math.abs(decimal1 - decimal2);
+    }
+
+    // Find the nearest standard ratio
+    function findNearestRatio(width, height, type) {
+        const inputRatio = calculateAspectRatio(width, height);
+        const [inputW, inputH] = inputRatio.split(':').map(Number);
+        const inputDecimal = inputW / inputH;
+        
+        let closestRatio = null;
+        let closestDifference = Infinity;
+        let closestDimensions = null;
+        
+        for (const dimensions in common_aspect_ratios[type]) {
+            const [stdWidth, stdHeight] = dimensions.split('*').map(Number);
+            const stdRatio = common_aspect_ratios[type][dimensions];
+            const [stdW, stdH] = stdRatio.split(':').map(Number);
+            const stdDecimal = stdW / stdH;
+            
+            const difference = Math.abs(inputDecimal - stdDecimal);
+            
+            if (difference < closestDifference) {
+                closestDifference = difference;
+                closestRatio = stdRatio;
+                closestDimensions = dimensions;
+            }
+        }
+        
+        return { ratio: closestRatio, dimensions: closestDimensions };
+    }
+
+    // Generate scaled sizes
+    function generateScaledSizes(width, height, matchedDimensions) {
+        const [stdWidth, stdHeight] = matchedDimensions.split('*').map(Number);
+        
+        // Calculate base scale factor (how much the input differs from the standard)
+        const widthScale = width / stdWidth;
+        const heightScale = height / stdHeight;
+        const baseScale = (widthScale + heightScale) / 2;
+        
+        // Generate various scaled dimensions
+        const scales = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5];
+        const scaledSizes = [];
+        
+        for (const scale of scales) {
+            const scaledWidth = Math.round(stdWidth * scale);
+            const scaledHeight = Math.round(stdHeight * scale);
+            scaledSizes.push({
+                scale: scale,
+                width: scaledWidth,
+                height: scaledHeight
+            });
+        }
+        
+        return scaledSizes;
+    }
+
+    // Display results
+    function displayResults() {
+        const width = parseInt(document.getElementById("width").value);
+        const height = parseInt(document.getElementById("height").value);
+
+        var type = ""
+        if (width > height) {
+            type = "Horizontal"
+        }
+        if (width < height) {
+            type = "Vertical"
+        }
+        if (width == height) {
+            type = "Square"
+        }
+        const prefix = type.toLowerCase();
+        
+        if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+            document.getElementById("result").innerHTML = '<p style="color:#ff6b6b">Please enter valid dimensions</p>';
+            document.getElementById("match").innerHTML = '';
+            return;
+        }
+
+        // Calculate aspect ratio
+        const ratio = calculateAspectRatio(width, height);
+        document.getElementById("result").innerHTML = `
+            <p>Your <i class="dimms">${type}</i> dimensions: <strong>${width}×${height}</strong></p>
+            <p>Aspect ratio: <strong>${ratio}</strong></p>
+        `;
+        
+        // Find nearest standard ratio
+        const nearest = findNearestRatio(width, height, type);
+        if (nearest.ratio) {
+            // Generate scaled sizes based on the nearest ratio
+            const scaledSizes = generateScaledSizes(width, height, nearest.dimensions);
+            
+            let matchHTML = `<p>Closest standard ratio: <strong>${nearest.ratio}</strong> (${nearest.dimensions})</p>`;
+            matchHTML += '<div class="scaled-sizes"><p>Standard sizes with this ratio:</p><ul>';
+            
+            for (const size of scaledSizes) {
+                const isClosest = (
+                    size.width === parseInt(nearest.dimensions.split('*')[0]) && 
+                    size.height === parseInt(nearest.dimensions.split('*')[1])
+                );
+
+                matchHTML += `<li class="scaled-size ${isClosest ? 'highlighted' : ''}">
+                    Scale ${(size.scale).toFixed(1)}× = ${size.width}×${size.height}
+                </li>`;
+            }
+            
+            matchHTML += '</ul></div>';
+            document.getElementById("match").innerHTML = matchHTML;
+        } else {
+            document.getElementById("match").innerHTML = '<p>No matching standard ratio found</p>';
+        }
+    }
+
+    function handleEnterKey(event) {
+        // Check if Enter key is pressed
+        if (event.key === "Enter") {
+            displayResults();
+        }
+    }
+
+    // Add event listeners
+    document.getElementById('btnCalc').addEventListener('click', displayResults);
+    
+    // Add Enter key support to both input fields
+    document.getElementById('width').addEventListener('keypress', handleEnterKey);
+    document.getElementById('height').addEventListener('keypress', handleEnterKey);
+    
+    // Focus on width input when page loads
+    window.onload = function() {
+        document.getElementById('width').focus();
+    };
+</script>
+
+</body>
+</html>
